@@ -2,6 +2,8 @@ import gym
 import numpy as np
 import random
 
+import pandas as pd
+
 from keras.models import Sequential
 from keras.layers import Dense, Dropout
 from keras.optimizers import Adam
@@ -16,17 +18,17 @@ class Bot:
     def nn(self, num_features):
         model = Sequential()
 
-        model.add(Dense(4, input_dim=num_features,
+        model.add(Dense(1, input_dim=num_features,
                         kernel_initializer='random_uniform',
                         bias_initializer='random_uniform'
                         ))
+
+        """
         model.add(Dense(1,
                         kernel_initializer='random_uniform',
                         bias_initializer='random_uniform'
                         ))
 
-
-        """
         model.add(Dense(12, input_dim=num_features, activation='relu',
                         kernel_initializer='random_uniform',
                         bias_initializer='random_uniform'
@@ -38,7 +40,9 @@ class Bot:
         model.add(Dense(8, activation='relu'))
         model.add(Dense(1))
         """
-        opt = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.001, amsgrad=False)
+        opt = Adam(lr=0.3,
+                   #beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.001,
+                   amsgrad=False)
 
         model.compile(loss='mean_squared_error', optimizer=opt, metrics=['mean_absolute_error'])
         return model
@@ -60,7 +64,7 @@ class Bot:
         x = x[:, 1:]
         return x
 
-    def fit(self, batch,  epochs=5):
+    def fit(self, batch, epochs=5):
         batch = np.array(batch)
         x, y = batch[:, :-1], batch[:, -1]
         x = self.prepare_batch(x)
@@ -84,10 +88,10 @@ class Bot:
             print(self.get_weights())
             # self.print_q()
         if random.random() > eps:
-            inp = [[action-1, pos, vel] for action in range(3)]
+            inp = [[action - 1, pos, vel] for action in range(3)]
             values = self.predict(inp)
             if diagnostic:
-                print('values: ', list(zip(inp,values)))
+                print('values: ', list(zip(inp, values)))
             return np.argmax(values)
         else:
             return random.randint(0, 2)
@@ -112,6 +116,8 @@ class StatCollector:
         self.games = []
         self.game_data = []
         self.last_observation = 0
+
+        self.games_with_stats = []
 
         self.LEVELS = levels
         self.level_beaten = [0 for _ in range(len(levels))]
@@ -157,7 +163,11 @@ class StatCollector:
         # propagate rewards
         for i in reversed(range(t)):
             game_data[i, 0] += self.DISCOUNT * game_data[i + 1, 0]
+
+        game_with_gamenum = np.ones((game_data.shape[0], game_data.shape[1] + 1)) * self.game
+        game_with_gamenum[:, :-1] = game_data
         self.games.append(game_data)
+        self.games_with_stats.append(game_with_gamenum)
         self.game_data = []
         self.game += 1
         return game_data
@@ -187,7 +197,7 @@ statCollector = StatCollector(qspace_shape,
                               0.99
                               )
 env = gym.make('MountainCar-v0')
-num_episodes = 30000
+num_episodes = 6000
 
 bot = Bot()
 
@@ -239,3 +249,5 @@ for i_episode in range(num_episodes):
                 if (i_episode - starting_episodes) % 600 == 0:
                     bot.fit(every_observation_rewards(np.vstack(statCollector.games[-2000:])))
             break
+
+pd.DataFrame(np.vstack(statCollector.games_with_stats)).to_csv('../data/mountainCar-lr.csv', index=False)
