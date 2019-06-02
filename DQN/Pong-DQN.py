@@ -49,7 +49,7 @@ DISCOUNT = 0.9
 ER_SIZE = 5000
 CUR_STATE_SIZE = 4
 
-EP_LENGTH = 600
+EP_LENGTH = 100000
 
 ER = deque(maxlen=ER_SIZE)
 
@@ -73,15 +73,19 @@ def get_state(observation):
     return np.array(cur_state)
 
 
-AVG_REWARD = []
-AVG_Q = []
+SUM_REWARD = []
+SUM_Q = []
+UPDATES = []
 
 update_num = 0
 
 times_total = np.zeros(4)
 
 env = gym.make('Pong-v0')
-for i_episode in range(3):
+for i_episode in range(EP_LENGTH):
+    if i_episode % 3 == 0:
+        print(i_episode)
+
     Q_EP = []
     REWARD_EP = []
 
@@ -89,9 +93,9 @@ for i_episode in range(3):
     observation_processed = preprocess_image(observation)
     state = get_state(observation_processed)
 
-    EPS = 0.8 if i_episode < 10 else 0.05
+    EPS = 0.8 if i_episode < 20 else 0.05
     for t in range(EP_LENGTH):
-        if i_episode % 20 == 0:
+        if i_episode % 10 == 0:
             env.render()
         # if t > 60 and t % 10 == 0:
         #    plt.figure()
@@ -150,21 +154,18 @@ for i_episode in range(3):
                 times_total[i] += times[i + 1] - times[i]
 
             update_num += 1
-            if update_num % 100 == 0:
-                print('=' * 20)
-                print(update_num)
-                print(times_total)
 
-        if t == EP_LENGTH - 1:  # done
-            AVG_Q.append(np.mean(Q_EP))
-            AVG_REWARD.append(np.mean(REWARD_EP))
+        if t == EP_LENGTH - 1 or done:  # done
+            SUM_Q.append(np.sum(Q_EP))
+            SUM_REWARD.append(np.sum(REWARD_EP))
+            UPDATES.append(update_num)
             break
-    if i_episode % 3:
-        pd.Series(AVG_Q).to_csv('data/pong/avg_q.csv', name='AVG_Q')
-        pd.Series(AVG_REWARD).to_csv('data/pong/avg_reward.csv', name='AVG_REWARD')
+    if i_episode % 5 == 0:
+        df = pd.DataFrame(data={'AVG_Q': SUM_Q, 'AVG_REWARD': SUM_REWARD, 'N_UPDATED': UPDATES})
+        df.to_csv('data/pong/stats.csv', index=False)
         model.save_weights('models/pong.h5')
-
-        plt.plot(AVG_Q, label='Average Q')
-        plt.plot(AVG_REWARD, label='Average Reward')
+        plt.plot(range(5, len(SUM_Q)), np.clip(SUM_Q[5:], a_min=-50, a_max=50), label='Average Q')
+        plt.plot(range(5, len(SUM_Q)), SUM_REWARD[5:], label='Average Reward')
         plt.legend()
-        plt.show()
+        plt.savefig('data/pong/graph.jpg')
+        plt.clf()
