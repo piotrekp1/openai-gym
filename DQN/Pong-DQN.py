@@ -9,14 +9,12 @@ import pandas as pd
 
 import random
 
-from keras.models import Sequential
-from keras.layers import Dense, Conv2D, Flatten
-
-from keras.optimizers import Adam
 import tensorflow as tf
 from keras.backend.tensorflow_backend import set_session
 
-from DQN.SingleUpdate import SingleUpdate
+
+from DQN.DQN1 import DQN1
+from DQN.DQN2 import DQN2
 
 import timeit
 
@@ -28,22 +26,7 @@ sess = tf.Session(config=config)
 set_session(sess)
 
 # create model
-model = Sequential()
-# add model layers
-model.add(
-    Conv2D(16, kernel_size=8, strides=4, activation='relu', data_format='channels_first', input_shape=(4, 42, 42)))
-model.add(Conv2D(32, kernel_size=4, strides=2, activation='relu'))
-model.add(Flatten())
-model.add(Dense(256, activation='relu'))
-model.add(Dense(6))
-
-
-opt = Adam(lr=0.1,
-           # beta_1=0.9, beta_2=0.999, epsilon=None,
-           #decay=0.01,
-           amsgrad=False)
-
-model.compile(loss='mean_squared_error', optimizer=opt, metrics=['mean_absolute_error'])
+model = DQN2()
 
 # su_model = SingleUpdate(model)
 
@@ -105,13 +88,6 @@ for i_episode in range(EP_LENGTH):
         time_start = time.time()
         if i_episode % 30 == 0:
             env.render()
-        # if t > 60 and t % 10 == 0:
-        #    plt.figure()
-        #    plt.imshow(observation_new)
-        #    plt.show()
-        #    plt.imshow(observation_processed, cmap=plt.get_cmap('gray'))
-        #    plt.show()
-        # time.sleep(0.01)
 
         if np.random.random() > EPS:
             values = model.predict(np.stack([state]))
@@ -136,70 +112,17 @@ for i_episode in range(EP_LENGTH):
             times.append(time.time())
 
             minibatch = np.array(random.sample(ER, MINIBATCH_SIZE))
-            mb_states, mb_actions, mb_rewards, mb_states_new = [minibatch[:, i] for i in range(4)]
-            mb_states, mb_states_new = np.stack(mb_states), np.stack(mb_states_new)
-            # minibatch = np.array(random.sample(ER, MINIBATCH_SIZE))
-
-            times.append(time.time())
-
-            # preds_total = model.predict(np.concatenate([mb_states, mb_states_new]))
-
-            state_preds = model.predict(mb_states)
-            state_new_preds = model.predict(mb_states_new)
-            # state_preds = preds_total[:MINIBATCH_SIZE]
-            # state_new_preds = preds_total[MINIBATCH_SIZE:]
-
-            times.append(time.time())
-            for i in range(MINIBATCH_SIZE):
-                state_preds[i, int(mb_actions[i])] = mb_rewards[i] + DISCOUNT * state_new_preds[i, :].max()  # TD update
-
-            times.append(time.time())
-            model.train_on_batch(mb_states, state_preds)
-
-            times.append(time.time())
-
-            #time_start_total += times[0] - time_start
-
-            #for i in range(4):
-            #    times_total[i] += times[i + 1] - times[i]
-
-            update_num += 1
-
-
-            ### SU_model
-
-            """
-            times = []
-            times.append(time.time())
-
-            minibatch = np.array(random.sample(ER, MINIBATCH_SIZE))
-            for i in range(6):
-                cond = minibatch[:, 1] == i
-                y = minibatch[cond, 2]
-                x = minibatch[cond, 0]
-                su_model.train_on_batch(tf.convert_to_tensor(np.stack(x), dtype=tf.float32),
-                                        tf.convert_to_tensor(y, dtype=tf.float32),
-                                        i)
-
-            times.append(time.time())
-            time_start_total += times[0] - time_start
-            times_total[0] += times[1] - times[0]
-
-            if t % 10 == 0:
-                print('=' * 20)
-                print(time_start_total)
-                print(times_total[0])
-            """
+            model.train_on_batch(minibatch)
 
         if t == EP_LENGTH - 1 or done:  # done
             SUM_Q.append(np.sum(Q_EP))
             SUM_REWARD.append(np.sum(REWARD_EP))
-            UPDATES.append(update_num)
+            UPDATES.append(model.num_updates())
             break
     if i_episode % 5 == 0:
         df = pd.DataFrame(data={'AVG_Q': SUM_Q, 'AVG_REWARD': SUM_REWARD, 'N_UPDATED': UPDATES})
         df.to_csv('data/pong/stats_dense.csv', index=False)
-        model.save_weights('models/pong_dense.h5')
+        model.save_weights('models/pong_dense')
         plt.plot(range(5, len(SUM_Q)), np.clip(SUM_Q[5:], a_min=-50, a_max=50), label='Average Q')
         plt.plot(range(5, len(SUM_Q)), SUM_REWARD[5:], label='Average Reward')
         plt.legend()
