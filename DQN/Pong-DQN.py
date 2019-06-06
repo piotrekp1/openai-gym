@@ -16,6 +16,8 @@ from keras.optimizers import Adam
 import tensorflow as tf
 from keras.backend.tensorflow_backend import set_session
 
+from DQN.SingleUpdate import SingleUpdate
+
 import timeit
 
 config = tf.ConfigProto()
@@ -35,12 +37,16 @@ model.add(Flatten())
 model.add(Dense(256, activation='relu'))
 model.add(Dense(6))
 
+
 opt = Adam(lr=0.1,
            # beta_1=0.9, beta_2=0.999, epsilon=None,
-           decay=0.01,
+           #decay=0.01,
            amsgrad=False)
 
 model.compile(loss='mean_squared_error', optimizer=opt, metrics=['mean_absolute_error'])
+
+# su_model = SingleUpdate(model)
+
 
 MINIBATCH_SIZE = 250
 
@@ -80,6 +86,7 @@ UPDATES = []
 update_num = 0
 
 times_total = np.zeros(4)
+time_start_total = 0
 
 env = gym.make('Pong-v0')
 for i_episode in range(EP_LENGTH):
@@ -95,7 +102,8 @@ for i_episode in range(EP_LENGTH):
 
     EPS = 0.8 if i_episode < 20 else 0.05
     for t in range(EP_LENGTH):
-        if i_episode % 10 == 0:
+        time_start = time.time()
+        if i_episode % 30 == 0:
             env.render()
         # if t > 60 and t % 10 == 0:
         #    plt.figure()
@@ -104,13 +112,13 @@ for i_episode in range(EP_LENGTH):
         #    plt.imshow(observation_processed, cmap=plt.get_cmap('gray'))
         #    plt.show()
         # time.sleep(0.01)
-        if t % 4 == 0:
-            if np.random.random() > EPS:
-                values = model.predict(np.stack([state]))
-                Q_EP.append(values.max())
-                action = values.argmax()
-            else:
-                action = env.action_space.sample()
+
+        if np.random.random() > EPS:
+            values = model.predict(np.stack([state]))
+            Q_EP.append(values.max())
+            action = values.argmax()
+        else:
+            action = env.action_space.sample()
         # action = env.action_space.sample()
 
         observation_new, reward, done, info = env.step(action)
@@ -123,7 +131,7 @@ for i_episode in range(EP_LENGTH):
         state = state_new
 
         # update weights
-        if len(ER) > MINIBATCH_SIZE and t % 4 == 0:
+        if len(ER) > MINIBATCH_SIZE:
             times = []
             times.append(time.time())
 
@@ -150,10 +158,38 @@ for i_episode in range(EP_LENGTH):
 
             times.append(time.time())
 
-            for i in range(4):
-                times_total[i] += times[i + 1] - times[i]
+            #time_start_total += times[0] - time_start
+
+            #for i in range(4):
+            #    times_total[i] += times[i + 1] - times[i]
 
             update_num += 1
+
+
+            ### SU_model
+
+            """
+            times = []
+            times.append(time.time())
+
+            minibatch = np.array(random.sample(ER, MINIBATCH_SIZE))
+            for i in range(6):
+                cond = minibatch[:, 1] == i
+                y = minibatch[cond, 2]
+                x = minibatch[cond, 0]
+                su_model.train_on_batch(tf.convert_to_tensor(np.stack(x), dtype=tf.float32),
+                                        tf.convert_to_tensor(y, dtype=tf.float32),
+                                        i)
+
+            times.append(time.time())
+            time_start_total += times[0] - time_start
+            times_total[0] += times[1] - times[0]
+
+            if t % 10 == 0:
+                print('=' * 20)
+                print(time_start_total)
+                print(times_total[0])
+            """
 
         if t == EP_LENGTH - 1 or done:  # done
             SUM_Q.append(np.sum(Q_EP))
@@ -162,8 +198,8 @@ for i_episode in range(EP_LENGTH):
             break
     if i_episode % 5 == 0:
         df = pd.DataFrame(data={'AVG_Q': SUM_Q, 'AVG_REWARD': SUM_REWARD, 'N_UPDATED': UPDATES})
-        df.to_csv('data/pong/stats.csv', index=False)
-        model.save_weights('models/pong.h5')
+        df.to_csv('data/pong/stats_dense.csv', index=False)
+        model.save_weights('models/pong_dense.h5')
         plt.plot(range(5, len(SUM_Q)), np.clip(SUM_Q[5:], a_min=-50, a_max=50), label='Average Q')
         plt.plot(range(5, len(SUM_Q)), SUM_REWARD[5:], label='Average Reward')
         plt.legend()
