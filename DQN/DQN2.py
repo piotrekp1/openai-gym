@@ -46,7 +46,8 @@ class DQN2:
 
         for i in range(6):
             cond = batch[:, 1] == i
-
+            if cond.sum() == 0:
+                continue
             new_y_cond = preds_new[cond]
             new_y_cond = new_y_cond * self.DISCOUNT + batch[cond, 2]
 
