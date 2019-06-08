@@ -21,7 +21,7 @@ class DQN1:
         self.model.add(Dense(256, activation='relu'))
         self.model.add(Dense(6))
 
-        opt = Adam(lr=0.3,
+        opt = Adam(lr=0.1,
                    # beta_1=0.9, beta_2=0.999, epsilon=None,
                    # decay=0.01,
                    amsgrad=False)
@@ -64,12 +64,14 @@ class DQN1:
         time_end = time.time()
         self.time_total += time_end - time_start
         self.update_num += 1
-        if self.update_num % 10 == 0:
+        # if self.update_num % 10 == 0:
             # print(f'update_num: {self.update_num}, total_time: {self.time_total}')
-            print('-' * 20)
-            for i in range(3):
-                print(self.times_total[i])
-                self.times_total[i] += self.times[i + 1] - self.times[i]
+            #print('-' * 20)
+            #for i in range(3):
+            #    print(self.times_total[i])
+            #    self.times_total[i] += self.times[i + 1] - self.times[i]
+        if self.update_num % 10 == 0:
+            print(f'update_num: {self.update_num}, total_time: {self.time_total}')
 
     def num_updates(self):
         return self.update_num
