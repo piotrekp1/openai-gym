@@ -26,16 +26,17 @@ sess = tf.Session(config=config)
 set_session(sess)
 
 # create model
-model = DQN2()
+model = DQN1()
 
 # su_model = SingleUpdate(model)
 
 
-MINIBATCH_SIZE = 250
+MINIBATCH_SIZE = 32
 
 EPS = 0.05
+EXP_EPISODES = 50000
 DISCOUNT = 0.9
-ER_SIZE = 5000
+ER_SIZE = 1000000
 CUR_STATE_SIZE = 4
 
 EP_LENGTH = 100000
@@ -83,10 +84,10 @@ for i_episode in range(EP_LENGTH):
     observation_processed = preprocess_image(observation)
     state = get_state(observation_processed)
 
-    EPS = 0.8 if i_episode < 20 else 0.05
+    EPS = max(1 - (i_episode / EXP_EPISODES), 0.1)
     for t in range(EP_LENGTH):
         time_start = time.time()
-        if i_episode % 30 == 0:
+        if i_episode % 15 == 0:
             env.render()
 
         if np.random.random() > EPS:
@@ -122,9 +123,12 @@ for i_episode in range(EP_LENGTH):
     if i_episode % 5 == 0:
         df = pd.DataFrame(data={'AVG_Q': SUM_Q, 'AVG_REWARD': SUM_REWARD, 'N_UPDATED': UPDATES})
         df.to_csv('data/pong/stats_dense.csv', index=False)
-        model.save_weights('models/pong_dense')
+
+        model.save_weights('models/pong_dense.h5')
         plt.plot(range(5, len(SUM_Q)), np.clip(SUM_Q[5:], a_min=-50, a_max=50), label='Average Q')
         plt.plot(range(5, len(SUM_Q)), SUM_REWARD[5:], label='Average Reward')
         plt.legend()
         plt.savefig('data/pong/graph.jpg')
         plt.clf()
+    if i_episode % 50 == 0:
+        np.save('data/pong/ER.npz', np.array(ER))
