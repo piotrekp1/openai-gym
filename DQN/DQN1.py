@@ -8,8 +8,8 @@ import time
 
 
 class DQN1:
-    def __init__(self):
-        self.DISCOUNT = 0.9
+    def __init__(self, learning_rate=0.1, DISCOUNT=0.95):
+        self.DISCOUNT = DISCOUNT
 
         self.model = Sequential()
         # add model layers
@@ -21,7 +21,7 @@ class DQN1:
         self.model.add(Dense(256, activation='relu'))
         self.model.add(Dense(6))
 
-        opt = Adam(lr=0.1,
+        opt = Adam(lr=learning_rate,
                    # beta_1=0.9, beta_2=0.999, epsilon=None,
                    # decay=0.01,
                    amsgrad=False)
@@ -65,11 +65,11 @@ class DQN1:
         self.time_total += time_end - time_start
         self.update_num += 1
         # if self.update_num % 10 == 0:
-            # print(f'update_num: {self.update_num}, total_time: {self.time_total}')
-            #print('-' * 20)
-            #for i in range(3):
-            #    print(self.times_total[i])
-            #    self.times_total[i] += self.times[i + 1] - self.times[i]
+        # print(f'update_num: {self.update_num}, total_time: {self.time_total}')
+        # print('-' * 20)
+        # for i in range(3):
+        #    print(self.times_total[i])
+        #    self.times_total[i] += self.times[i + 1] - self.times[i]
         if self.update_num % 10 == 0:
             print(f'update_num: {self.update_num}, total_time: {self.time_total}')
 

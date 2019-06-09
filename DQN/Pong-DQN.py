@@ -26,8 +26,8 @@ sess = tf.Session(config=config)
 set_session(sess)
 
 # create model
-behavior_model = DQN1()
-target_model = DQN1()
+behavior_model = DQN2(learning_rate=0.0001, DISCOUNT=0.95)
+target_model = DQN2(learning_rate=0.0001, DISCOUNT=0.95)
 
 # su_model = SingleUpdate(model)
 
@@ -35,12 +35,12 @@ target_model = DQN1()
 MINIBATCH_SIZE = 32
 
 EPS = 0.05
-EXP_EPISODES = 1000
+EXP_EPISODES = 200
 DISCOUNT = 0.9
-ER_SIZE = 100000
+ER_SIZE = 85000
 CUR_STATE_SIZE = 4
 
-EPISODES_PER_ITERATION = 30
+UPDATES_PER_EPOCH = 10000
 
 EP_LENGTH = 100000
 
@@ -81,9 +81,6 @@ for i_episode in range(EP_LENGTH):
     if i_episode % 3 == 0:
         print(i_episode)
 
-    if i_episode % EPISODES_PER_ITERATION:
-        behavior_model = target_model
-
 
     Q_EP = []
     REWARD_EP = []
@@ -117,11 +114,12 @@ for i_episode in range(EP_LENGTH):
 
         # update weights
         if len(ER) > MINIBATCH_SIZE:
-            times = []
-            times.append(time.time())
-
             minibatch = np.array(random.sample(ER, MINIBATCH_SIZE))
             target_model.train_on_batch(minibatch)
+
+            if target_model.num_updates() % UPDATES_PER_EPOCH == 0:
+                behavior_model.set_weights_from(target_model)
+                #behavior_model = target_model
 
         if t == EP_LENGTH - 1 or done:  # done
             SUM_Q.append(np.sum(Q_EP))
@@ -132,11 +130,12 @@ for i_episode in range(EP_LENGTH):
         df = pd.DataFrame(data={'AVG_Q': SUM_Q, 'AVG_REWARD': SUM_REWARD, 'N_UPDATED': UPDATES})
         df.to_csv('data/pong/stats_dense.csv', index=False)
 
-        target_model.save_weights('models/pong_dense.h5')
+        target_model.save_weights('models/pong_dense')
         plt.plot(range(5, len(SUM_Q)), np.clip(SUM_Q[5:], a_min=-50, a_max=50), label='Average Q')
         plt.plot(range(5, len(SUM_Q)), SUM_REWARD[5:], label='Average Reward')
         plt.legend()
         plt.savefig('data/pong/graph.jpg')
         plt.clf()
     # if i_episode % 10 == 0:
-    #     np.save('data/pong/ER.npz', np.array(ER))
+
+    #     #np.save(f'data/pong/ER_{i_episode}', np.array(ER))

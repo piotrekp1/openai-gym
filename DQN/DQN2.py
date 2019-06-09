@@ -10,8 +10,8 @@ import os
 
 
 class DQN2:
-    def __init__(self):
-        self.DISCOUNT = 0.95
+    def __init__(self, learning_rate=0.1, DISCOUNT=0.95, decay=0):
+        self.DISCOUNT = DISCOUNT
         body_layers = [
             Conv2D(16, kernel_size=8, strides=4, activation='relu', data_format='channels_first',
                    input_shape=(4, 42, 42)),
@@ -25,13 +25,21 @@ class DQN2:
         self.models = [Sequential(body_layers + [head_layer]) for head_layer in head_layers]
         self.heads = [Sequential([head]) for head in head_layers]
 
-        opt = Adam(lr=0.1, amsgrad=False)
+        opt = Adam(lr=learning_rate,
+                   decay=decay,
+                   amsgrad=False)
 
         for model in self.models + self.heads + [self.body]:
             model.compile(loss='mean_squared_error', optimizer=opt, metrics=['mean_absolute_error'])
 
         self.update_num = 0
         self.time_total = 0
+
+    def set_weights_from(self, dqn_to_set_weights):
+        self.body.set_weights(dqn_to_set_weights.body.get_weights())
+        for i in range(len(self.models)):
+            self.heads[i].set_weights(dqn_to_set_weights.heads[i].get_weights())
+            self.models[i].set_weights(dqn_to_set_weights.models[i].get_weights())
 
     def predict(self, x):
         body_pred = self.body.predict(x)
