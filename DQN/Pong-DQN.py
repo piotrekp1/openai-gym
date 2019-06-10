@@ -115,7 +115,7 @@ for i_episode in range(EP_LENGTH):
         # update weights
         if len(ER) > MINIBATCH_SIZE:
             minibatch = np.array(random.sample(ER, MINIBATCH_SIZE))
-            target_model.train_on_batch(minibatch)
+            target_model.train_on_batch(minibatch, behavior_model)
 
             if target_model.num_updates() % UPDATES_PER_EPOCH == 0:
                 behavior_model.set_weights_from(target_model)
