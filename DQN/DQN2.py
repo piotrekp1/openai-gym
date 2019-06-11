@@ -36,10 +36,10 @@ class DQN2:
         self.time_total = 0
 
     def set_weights_from(self, dqn_to_set_weights):
-        self.body.set_weights(dqn_to_set_weights.body.get_weights())
+        self.body.set_weights(np.copy(dqn_to_set_weights.body.get_weights()))
         for i in range(len(self.models)):
-            self.heads[i].set_weights(dqn_to_set_weights.heads[i].get_weights())
-            self.models[i].set_weights(dqn_to_set_weights.models[i].get_weights())
+            self.heads[i].set_weights(np.copy(dqn_to_set_weights.heads[i].get_weights()))
+            self.models[i].set_weights(np.copy(dqn_to_set_weights.models[i].get_weights()))
 
     def predict(self, x):
         body_pred = self.body.predict(x)

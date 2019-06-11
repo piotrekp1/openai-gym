@@ -35,12 +35,12 @@ target_model = DQN2(learning_rate=0.0001, DISCOUNT=0.95)
 MINIBATCH_SIZE = 32
 
 EPS = 0.05
-EXP_EPISODES = 200
+EXP_EPISODES = 1000
 DISCOUNT = 0.9
-ER_SIZE = 85000
+ER_SIZE = 225000
 CUR_STATE_SIZE = 4
 
-UPDATES_PER_EPOCH = 10000
+UPDATES_PER_EPOCH = 35000
 
 EP_LENGTH = 100000
 
@@ -113,6 +113,7 @@ for i_episode in range(EP_LENGTH):
         state = state_new
 
         # update weights
+
         if len(ER) > MINIBATCH_SIZE:
             minibatch = np.array(random.sample(ER, MINIBATCH_SIZE))
             target_model.train_on_batch(minibatch, behavior_model)
