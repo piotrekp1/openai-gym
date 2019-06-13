@@ -26,8 +26,8 @@ sess = tf.Session(config=config)
 set_session(sess)
 
 # create model
-behavior_model = DQN2(learning_rate=0.0001, DISCOUNT=0.95)
-target_model = DQN2(learning_rate=0.0001, DISCOUNT=0.95)
+behavior_model = DQN2(learning_rate=0.4, DISCOUNT=0.95)
+target_model = DQN2(learning_rate=0.4, DISCOUNT=0.95)
 
 # su_model = SingleUpdate(model)
 
@@ -40,7 +40,7 @@ DISCOUNT = 0.9
 ER_SIZE = 225000
 CUR_STATE_SIZE = 4
 
-UPDATES_PER_EPOCH = 35000
+UPDATES_PER_EPOCH = 20000
 
 EP_LENGTH = 100000
 

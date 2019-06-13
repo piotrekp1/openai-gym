@@ -51,6 +51,7 @@ class DQN2:
     def train_on_batch(self, batch, behaviour_network):
         time_start = time.time()
         preds_new = behaviour_network.predict(np.stack(batch[:, 3])).max(axis=1)
+        preds_new = np.clip(preds_new, -1, 1)
 
         for i in range(6):
             cond = batch[:, 1] == i
