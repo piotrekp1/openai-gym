@@ -12,11 +12,16 @@ import random
 import tensorflow as tf
 from keras.backend.tensorflow_backend import set_session
 
+import os
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 from DQN.DQN1 import DQN1
 from DQN.DQN2 import DQN2
 
 import timeit
+
+import copy
 
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True  # dynamically grow the memory used on the GPU
@@ -26,8 +31,8 @@ sess = tf.Session(config=config)
 set_session(sess)
 
 # create model
-behavior_model = DQN2(learning_rate=0.4, DISCOUNT=0.95)
-target_model = DQN2(learning_rate=0.4, DISCOUNT=0.95)
+behavior_model = DQN2(learning_rate=0.0001, DISCOUNT=0.9)
+target_model = DQN2(learning_rate=0.00000001, DISCOUNT=0.9)
 
 # su_model = SingleUpdate(model)
 
@@ -35,12 +40,12 @@ target_model = DQN2(learning_rate=0.4, DISCOUNT=0.95)
 MINIBATCH_SIZE = 32
 
 EPS = 0.05
-EXP_EPISODES = 1000
+EXP_EPISODES = 3000
 DISCOUNT = 0.9
-ER_SIZE = 225000
+ER_SIZE = 1000000
 CUR_STATE_SIZE = 4
 
-UPDATES_PER_EPOCH = 20000
+UPDATES_PER_EPOCH = 50000
 
 EP_LENGTH = 100000
 
@@ -81,7 +86,6 @@ for i_episode in range(EP_LENGTH):
     if i_episode % 3 == 0:
         print(i_episode)
 
-
     Q_EP = []
     REWARD_EP = []
 
@@ -92,14 +96,27 @@ for i_episode in range(EP_LENGTH):
     EPS = max(1 - (i_episode / EXP_EPISODES), 0.05)
     for t in range(EP_LENGTH):
         time_start = time.time()
-        if i_episode % 5 == 0:
+
+        DIAGNOSTIC = i_episode % 30 == 0 and t % 50 == 0
+        if DIAGNOSTIC:
+            print('=' * 10)
+            print('DIAGNOSTIC')
+            print(i_episode, t)
+
+        if i_episode % 10 == 0:
             env.render()
 
         if np.random.random() > EPS:
+            if DIAGNOSTIC:
+                print('EPS:', EPS)
+                print('GREEDY')
             values = behavior_model.predict(np.stack([state]))
             Q_EP.append(values.max())
             action = values.argmax()
         else:
+            if DIAGNOSTIC:
+                print('EPS:', EPS)
+                print('EXPLORING')
             action = env.action_space.sample()
         # action = env.action_space.sample()
 
@@ -116,11 +133,50 @@ for i_episode in range(EP_LENGTH):
 
         if len(ER) > MINIBATCH_SIZE:
             minibatch = np.array(random.sample(ER, MINIBATCH_SIZE))
+
+            if DIAGNOSTIC:
+                target_weights_before = copy.deepcopy(target_model.get_weights()[2])
+                behavior_weights_before = copy.deepcopy(behavior_model.get_weights()[2])
             target_model.train_on_batch(minibatch, behavior_model)
+            if DIAGNOSTIC:
+                target_weights_after = target_model.get_weights()[2]
+                behavior_weights_after = behavior_model.get_weights()[2]
+                print('Updated target model:', [
+                    1 - (before[0] == after[0]).mean()
+                    for before, after
+                    in zip(target_weights_before, target_weights_after)
+                ])
+                print('Updated behavior model:', [
+                    1 - (before[0] == after[0]).mean()
+                    for before, after
+                    in zip(behavior_weights_before, behavior_weights_after)
+                ])
+
+            if DIAGNOSTIC:
+                print('WEIGHTS COMPARE')
+                b_body, b_heads, b_models = behavior_model.get_weights()
+                t_body, t_heads, t_models = target_model.get_weights()
+
+                print('head_biases')
+                print('behaviour', [(model[6].mean()) for model in b_models])
+                print('target', [(model[6].mean()) for model in t_models])
+
+
+                def compare_heads(head1, head2):
+                    return (head1[0] == head2[0]).mean()
+
+
+                print('body:', [(b_body_lay == t_body_lay).mean() for b_body_lay, t_body_lay in zip(b_body, t_body)])
+                print('heads: ', [compare_heads(b_head, t_head) for b_head, t_head in zip(b_heads, t_heads)])
+                for i in range(len(b_models)):
+                    print(f'model {i} layers: ', list((b_model_lay == t_model_lay).mean()
+                                                      for b_model_lay, t_model_lay
+                                                      in zip(b_models[i], t_models[i])))
+                # print('models: ', [(b_model_lay == t_model_lay).mean() for b_model_lay, t_model_lay in zip(b_models, t_models)])
 
             if target_model.num_updates() % UPDATES_PER_EPOCH == 0:
                 behavior_model.set_weights_from(target_model)
-                #behavior_model = target_model
+                # behavior_model = target_model
 
         if t == EP_LENGTH - 1 or done:  # done
             SUM_Q.append(np.sum(Q_EP))
