@@ -197,6 +197,8 @@ for i_episode in range(EP_LENGTH):
                 # behavior_model = target_model
 
         if t == EP_LENGTH - 1 or done:  # done
+            ER.push([state_new, action, reward, None])
+
             SUM_Q.append(np.sum(Q_EP))
             SUM_REWARD.append(np.sum(REWARD_EP))
             UPDATES.append(target_model.num_updates())

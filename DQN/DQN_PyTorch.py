@@ -61,15 +61,22 @@ class DQN_PyTorch():
     def train_on_batch(self, minibatch, behaviour_network):
         states, actions, rewards, next_states = zip(*minibatch)
 
+        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
+                                                next_states)), device=self.device, dtype=torch.uint8)
+
         states = torch.tensor(states, device=self.device, dtype=torch.float)
-        next_states = torch.tensor(next_states, device=self.device, dtype=torch.float)
+        next_states = torch.tensor([next_state for next_state in next_states if next_state is not None], device=self.device, dtype=torch.float)
         actions = torch.tensor(actions, device=self.device, dtype=torch.long)
         rewards = torch.tensor(rewards, device=self.device, dtype=torch.float)
+
+        next_state_values = torch.zeros(len(minibatch), device=self.device)
 
         state_action_values = self.dqn.forward(states).gather(1, actions.unsqueeze(1))
 
         next_state_preds = behaviour_network.predict(next_states).max(1)[0].detach()
-        expected_state_action_values = (next_state_preds * self.DISCOUNT) + rewards
+        next_state_values[non_final_mask] = next_state_preds
+
+        expected_state_action_values = (next_state_values * self.DISCOUNT) + rewards
 
         # Compute Huber loss
         loss = F.smooth_l1_loss(state_action_values, expected_state_action_values)
@@ -77,11 +84,9 @@ class DQN_PyTorch():
         # Optimize the model
         self.optimizer.zero_grad()
         loss.backward()
-        for param in self.dqn.parameters():
-            param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
 
         self.updates += 1
 
         if self.updates % 50 == 0:
-            print('updates: ', self.updates, ' time: ',  time.time() - self.time_start)
+            print('updates: ', self.updates, ' time: ', time.time() - self.time_start)
