@@ -16,6 +16,7 @@ for i_episode in range(NUM_EPISODES):
 
     observation = env.reset()
     state_processor.clear_episode()
+    agent.next_episode()
     observation = state_processor.process_state(observation)
 
     done = False

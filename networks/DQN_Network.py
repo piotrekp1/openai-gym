@@ -48,13 +48,10 @@ class DQN_PyTorch:
         self.DISCOUNT = DISCOUNT
         self.optimizer = optim.RMSprop(self.dqn.parameters(), lr=learning_rate)
 
-        self.updates = 0
-
-        self.time_start = time.time()
 
     def predict(self, x):
         with torch.no_grad():
-            return self.dqn(x)
+            return self.dqn(torch.tensor(x,  device=device, dtype=torch.float))
 
     def num_updates(self):
         return self.updates
@@ -65,8 +62,8 @@ class DQN_PyTorch:
         non_final_mask = torch.tensor(dones, device=self.device, dtype=torch.uint8) * -1 + 1
 
         states = torch.tensor(states, device=self.device, dtype=torch.float)
-        next_states = torch.tensor([next_state for next_state in next_states if next_state is not None],
-                                   device=self.device, dtype=torch.float)
+        next_states = torch.tensor([next_state for next_state in next_states],
+                                   device=self.device, dtype=torch.float)[non_final_mask]
         actions = torch.tensor(actions, device=self.device, dtype=torch.long)
         rewards = torch.tensor(rewards, device=self.device, dtype=torch.float)
 
@@ -87,10 +84,7 @@ class DQN_PyTorch:
         loss.backward()
         self.optimizer.step()
 
-        self.updates += 1
 
-        if self.updates % 50 == 0:
-            print('updates: ', self.updates, ' time: ', time.time() - self.time_start)
 
     def set_params(self, from_network):
         self.dqn.load_state_dict(from_network.dqn.state_dict())
