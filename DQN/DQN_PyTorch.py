@@ -58,7 +58,7 @@ class DQN_PyTorch():
     def num_updates(self):
         return self.updates
 
-    def train_on_batch(self, minibatch, behaviour_network):
+    def train_on_batch(self, minibatch, target_network):
         states, actions, rewards, next_states = zip(*minibatch)
 
         non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
@@ -73,7 +73,7 @@ class DQN_PyTorch():
 
         state_action_values = self.dqn.forward(states).gather(1, actions.unsqueeze(1))
 
-        next_state_preds = behaviour_network.predict(next_states).max(1)[0].detach()
+        next_state_preds = target_network.predict(next_states).max(1)[0].detach()
         next_state_values[non_final_mask] = next_state_preds
 
         expected_state_action_values = (next_state_values * self.DISCOUNT) + rewards

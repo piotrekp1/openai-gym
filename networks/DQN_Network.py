@@ -82,6 +82,8 @@ class DQN_PyTorch:
         # Optimize the model
         self.optimizer.zero_grad()
         loss.backward()
+        for param in self.dqn.parameters():
+            param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
 
 
