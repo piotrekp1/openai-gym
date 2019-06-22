@@ -14,6 +14,37 @@ from keras.backend.tensorflow_backend import set_session
 
 import os
 
+from collections import namedtuple
+
+Transition = namedtuple('Transition',
+                        ('state', 'action', 'next_state', 'reward'))
+
+
+class ReplayMemory:
+
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.memory = []
+        self.position = 0
+
+    def push(self, value):
+        """Saves a transition."""
+        if len(self.memory) < self.capacity:
+            self.memory.append(value)
+        else:
+            self.memory[self.position] = value
+            self.position = (self.position + 1) % self.capacity
+
+    def sample(self, batch_size):
+        return random.sample(self.memory, batch_size)
+
+    def __len__(self):
+        return len(self.memory)
+
+    def whole_buffer(self):
+        return self.memory[self.position:] + self.memory[:self.position]
+
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 from DQN.DQN1 import DQN1
@@ -49,11 +80,11 @@ UPDATES_PER_EPOCH = 50000
 
 EP_LENGTH = 100000
 
-ER = deque(maxlen=ER_SIZE)
+ER = ReplayMemory(ER_SIZE)
 
-cur_state = deque(maxlen=CUR_STATE_SIZE)
+cur_state = ReplayMemory(CUR_STATE_SIZE)
 for _ in range(CUR_STATE_SIZE):
-    cur_state.append(np.zeros((42, 42)))
+    cur_state.push(np.zeros((42, 42)))
 
 
 def preprocess_image(image):
@@ -124,7 +155,7 @@ for i_episode in range(EP_LENGTH):
         observation_processed = preprocess_image(observation_new)
         state_new = get_state(observation_processed)
 
-        ER.append([state, action, reward, state_new])
+        ER.push([state, action, reward, state_new])
         REWARD_EP.append(reward)
 
         state = state_new
@@ -172,7 +203,8 @@ for i_episode in range(EP_LENGTH):
                     print(f'model {i} layers: ', list((b_model_lay == t_model_lay).mean()
                                                       for b_model_lay, t_model_lay
                                                       in zip(b_models[i], t_models[i])))
-                # print('models: ', [(b_model_lay == t_model_lay).mean() for b_model_lay, t_model_lay in zip(b_models, t_models)])
+                # print('models: ', [(b_model_lay == t_model_lay).mean() for b_model_lay, t_model_lay in zip(
+                # b_models, t_models)])
 
             if target_model.num_updates() % UPDATES_PER_EPOCH == 0:
                 behavior_model.set_weights_from(target_model)

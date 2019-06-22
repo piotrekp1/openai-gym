@@ -1,4 +1,5 @@
 import gym
+import tensorflow as tf
 
 from agents.DQN_Agent import DQN_Agent
 from utils.StateProcessors import DQN_StateProcessor
@@ -12,22 +13,30 @@ env = gym.make('Pong-v0')
 agent = DQN_Agent(env)
 state_processor = DQN_StateProcessor()
 
-for i_episode in range(NUM_EPISODES):
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
 
-    observation = env.reset()
-    state_processor.clear_episode()
-    agent.next_episode()
-    observation = state_processor.process_state(observation)
+with tf.Session(config=config) as sess:
+    sess.run(tf.global_variables_initializer())
+    agent.set_session(sess)
 
-    done = False
-    while not done:
-        env.render()
+    for i_episode in range(NUM_EPISODES):
 
-        action = agent.take_action(observation)
-        observation_new, reward, done, info = env.step(action)
-        observation_new = state_processor.process_state(observation_new)
-        agent.observe(observation, action, reward, observation_new, done)
+        observation = env.reset()
+        state_processor.clear_episode()
+        agent.next_episode()
+        observation = state_processor.process_state(observation)
 
-        observation = observation_new
+        done = False
+        while not done:
+            if i_episode % 3 == 0:
+                env.render()
 
-        agent.step_train()
+            action = agent.take_action(observation)
+            observation_new, reward, done, info = env.step(action)
+            observation_new = state_processor.process_state(observation_new)
+            agent.observe(observation, action, reward, observation_new, done)
+
+            observation = observation_new
+
+            agent.step_train()
