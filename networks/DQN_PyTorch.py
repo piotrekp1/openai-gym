@@ -48,13 +48,9 @@ class DQN_PyTorch:
         self.DISCOUNT = DISCOUNT
         self.optimizer = optim.RMSprop(self.dqn.parameters(), lr=learning_rate)
 
-
     def predict(self, x):
         with torch.no_grad():
-            return self.dqn(torch.tensor(x,  device=device, dtype=torch.float))
-
-    def num_updates(self):
-        return self.updates
+            return self.dqn(torch.tensor(x, device=device, dtype=torch.float))
 
     def train_on_batch(self, minibatch, target_network):
         states, actions, rewards, next_states, dones = zip(*minibatch)
@@ -85,8 +81,6 @@ class DQN_PyTorch:
         for param in self.dqn.parameters():
             param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
-
-
 
     def set_params(self, from_network):
         self.dqn.load_state_dict(from_network.dqn.state_dict())

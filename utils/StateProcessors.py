@@ -23,7 +23,7 @@ class DQN_StateProcessor:
     @staticmethod
     def __preprocess_image(image):
         image = image[29:197, :, :]
-        bw = np.pad(np.dot(image, [0.2989, 0.5870, 0.1140]), [(0, 0), (4, 4)], mode='minimum')
+        bw = np.pad(np.dot(image, [0.2989, 0.5870, 0.1140]), [(0, 0), (4, 4)], mode='minimum').astype(np.uint8)
         res = block_reduce(bw, (4, 4), np.max)
         del image
         del bw
