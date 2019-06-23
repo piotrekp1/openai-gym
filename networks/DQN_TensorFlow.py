@@ -14,20 +14,33 @@ class RawDQN:
         self.conv1 = tf.layers.conv2d(
             inputs=self.input, filters=16,
             kernel_size=[5, 5], padding="same",
+            kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            use_bias=False,
             data_format='channels_first', strides=2
         )
         self.conv2 = tf.layers.conv2d(
             inputs=self.conv1, filters=32,
             kernel_size=[5, 5], padding="same",
+            kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            use_bias=False,
             data_format='channels_first', strides=2
         )
         self.conv3 = tf.layers.conv2d(
-            inputs=self.conv2, filters=32,
+            inputs=self.conv2, filters=64,
             kernel_size=[5, 5], padding="same",
+            kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            use_bias=False,
+            data_format='channels_first', strides=2
+        )
+        self.conv4 = tf.layers.conv2d(
+            inputs=self.conv3, filters=64,
+            kernel_size=[5, 5], padding="same",
+            kernel_initializer=tf.variance_scaling_initializer(scale=2),
+            use_bias=False,
             data_format='channels_first', strides=2
         )
 
-        self.conv3_flat = tf.layers.flatten(self.conv3)
+        self.conv4_flat = tf.layers.flatten(self.conv4)
         self.outputs = tf.layers.dense(
             inputs=self.conv3_flat, units=num_moves
         )
