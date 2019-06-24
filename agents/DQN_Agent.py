@@ -19,7 +19,7 @@ class DQN_Agent(AbstractAgent):
 
         self.FINAL_EPS = 0.05
         self.START_EPS = 1
-        self.EXP_EPISODES = 300
+        self.EXP_EPISODES = 600
         self.DISCOUNT = 0.99
         ER_SIZE = 1000000
 
@@ -100,7 +100,7 @@ class DQN_Agent(AbstractAgent):
 
     @property
     def is_diagnostic(self):
-        return self.num_updates % 50 == 0
+        return self.num_updates % 1000 == 0
 
     def step_train(self):
         if len(self.ER) > self.no_update_moves:

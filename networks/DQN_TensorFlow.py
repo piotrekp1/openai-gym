@@ -11,8 +11,10 @@ class RawDQN:
         self.target_q = tf.placeholder(shape=[None], dtype=tf.float32)
         self.actions = tf.placeholder(shape=[None], dtype=tf.int32)
 
+        self.input_scaled = self.input / 255
+
         self.conv1 = tf.layers.conv2d(
-            inputs=self.input, filters=16,
+            inputs=self.input_scaled, filters=16,
             kernel_size=[5, 5], padding="same",
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
             use_bias=False,
@@ -42,7 +44,7 @@ class RawDQN:
 
         self.conv4_flat = tf.layers.flatten(self.conv4)
         self.outputs = tf.layers.dense(
-            inputs=self.conv3_flat, units=num_moves
+            inputs=self.conv4_flat, units=num_moves
         )
 
         self.Q = tf.reduce_sum(tf.multiply(
