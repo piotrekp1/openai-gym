@@ -85,11 +85,12 @@ class DQN_TensorFlow:
         next_state_preds = target_network.predict(next_states).max(axis=1)
         expected_state_action_values = (next_state_preds * self.DISCOUNT * not_dones) + np.array(rewards)
 
-        self.sess.run(self.dqn.update, feed_dict={
+        _, loss = self.sess.run([self.dqn.update, self.dqn.loss], feed_dict={
             self.dqn.input: states,
             self.dqn.actions: actions,
             self.dqn.target_q: expected_state_action_values
         })
+        return loss
 
     def set_session(self, sess):
         self.sess = sess

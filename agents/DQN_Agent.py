@@ -9,6 +9,10 @@ from networks.DQN_TensorFlow import DQN_TensorFlow
 
 import time
 
+import tensorflow as tf
+
+import os
+
 
 class DQN_Agent(AbstractAgent):
     def __init__(self, env):
@@ -28,7 +32,7 @@ class DQN_Agent(AbstractAgent):
         self.no_update_moves = 50000
 
         # network parameters
-        self.learning_rate = 0.0001
+        self.learning_rate = 0.00025
 
         # initialization
         self.ER = RoundBuffer(ER_SIZE)
@@ -47,7 +51,23 @@ class DQN_Agent(AbstractAgent):
         self.SUM_REWARD = []
         self.UPDATES = []
         self.Q_EP = 0
+        self.episode_greedy_actions = 0
         self.REWARD_EP = 0
+        self.loss_list = []
+        with tf.name_scope('Performance'):
+            self.LOSS_PH = tf.placeholder(tf.float32, shape=None, name='loss_summary')
+            self.LOSS_SUMMARY = tf.summary.scalar('loss', self.LOSS_PH)
+            self.REWARD_PH = tf.placeholder(tf.float32, shape=None, name='reward_summary')
+            self.REWARD_SUMMARY = tf.summary.scalar('reward', self.REWARD_PH)
+            self.Q_PH = tf.placeholder(tf.float32, shape=None, name='q_summary')
+            self.Q_SUMMARY = tf.summary.scalar('Q', self.Q_PH)
+
+        self.PERFORMANCE_SUMMARIES = tf.summary.merge([self.LOSS_SUMMARY, self.REWARD_SUMMARY, self.Q_SUMMARY])
+
+        SUMMARIES = "summaries"
+        RUNID = 'run_1'
+        self.SUMM_WRITER = tf.summary.FileWriter(os.path.join(SUMMARIES, RUNID))
+
 
     def set_session(self, sess):
         self.target_network.set_session(sess)
@@ -59,6 +79,8 @@ class DQN_Agent(AbstractAgent):
             return self.env.action_space.sample()
         else:
             # exploitation
+            self.episode_greedy_actions += 1
+
             action_values = self.behavior_network.predict([state])[0]
             self.Q_EP += action_values.max()
             return action_values.argmax()
@@ -70,6 +92,7 @@ class DQN_Agent(AbstractAgent):
     def reset_ep_stats(self):
         self.Q_EP = 0
         self.REWARD_EP = 0
+        self.episode_greedy_actions = 0
 
     def next_episode(self):
         if len(self.ER) > self.no_update_moves:
@@ -81,7 +104,8 @@ class DQN_Agent(AbstractAgent):
         self.cur_episode_num += 1
 
         # update_stats
-        self.SUM_Q.append(self.Q_EP)
+        AVG_Q = self.Q_EP / self.episode_greedy_actions if self.episode_greedy_actions > 0 else 0
+        self.SUM_Q.append(AVG_Q)
         self.SUM_REWARD.append(self.REWARD_EP)
         self.UPDATES.append(self.num_updates)
 
@@ -98,6 +122,19 @@ class DQN_Agent(AbstractAgent):
             plt.savefig('data/pong/graph.jpg')
             plt.clf()
 
+            with tf.Session() as sess:
+                loss_stat = np.mean(self.loss_list)
+                loss_stat = 0 if np.isnan(loss_stat) else loss_stat
+                summ = sess.run(self.PERFORMANCE_SUMMARIES,
+                                feed_dict={
+                                    self.LOSS_PH: loss_stat,
+                                    self.Q_PH: np.mean(self.SUM_Q[-10:]),
+                                    self.REWARD_PH: np.mean(self.SUM_REWARD[-10:])
+                                }
+                                )
+                self.SUMM_WRITER.add_summary(summ, self.num_updates)
+                self.loss_list = []
+
     @property
     def is_diagnostic(self):
         return self.num_updates % 1000 == 0
@@ -105,7 +142,8 @@ class DQN_Agent(AbstractAgent):
     def step_train(self):
         if len(self.ER) > self.no_update_moves:
             minibatch = self.ER.sample(self.MINIBATCH_SIZE)
-            self.behavior_network.train_on_batch(minibatch, self.target_network)
+            loss = self.behavior_network.train_on_batch(minibatch, self.target_network)
+            self.loss_list.append(loss)
             self.num_updates += 1
 
             if self.is_diagnostic:
