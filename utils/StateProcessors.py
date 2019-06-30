@@ -9,7 +9,7 @@ class DQN_StateProcessor:
         self.state_cap = 4
         self.cur_processed_state = RoundBuffer(self.state_cap)
 
-        self.obs_shape = (42, 42)
+        self.obs_shape = (84, 84)
 
     def process_state(self, state):
         state = self.__preprocess_image(state)
@@ -24,7 +24,7 @@ class DQN_StateProcessor:
     def __preprocess_image(image):
         image = image[29:197, :, :]
         bw = np.pad(np.dot(image, [0.2989, 0.5870, 0.1140]), [(0, 0), (4, 4)], mode='minimum').astype(np.uint8)
-        res = block_reduce(bw, (4, 4), np.max)
+        res = block_reduce(bw, (2, 2), np.max)
         del image
         del bw
         return res
