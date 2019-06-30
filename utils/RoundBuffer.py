@@ -18,7 +18,7 @@ class RoundBuffer:
         return random.sample(self.memory, batch_size)
 
     def whole_buffer(self):
-        return self.memory[:self.position] + self.memory[self.position:]
+        return self.memory[self.position:] + self.memory[:self.position]
 
     def __len__(self):
         return len(self.memory)

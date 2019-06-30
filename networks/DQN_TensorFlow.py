@@ -4,7 +4,7 @@ import numpy as np
 
 class RawDQN:
     def __init__(self, learning_rate):
-        h, w = 42, 42
+        h, w = 84, 84
         num_moves = 6
 
         self.input = tf.placeholder(shape=[None, 4, h, w], dtype=tf.float32)
@@ -15,7 +15,7 @@ class RawDQN:
 
         self.conv1 = tf.layers.conv2d(
             inputs=self.input_scaled, filters=32,
-            kernel_size=[8, 8],padding="same",
+            kernel_size=[8, 8],padding="valid",
             activation=tf.nn.relu,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
             use_bias=False,
@@ -23,7 +23,7 @@ class RawDQN:
         )
         self.conv2 = tf.layers.conv2d(
             inputs=self.conv1, filters=64,
-            kernel_size=[4, 4], padding="same",
+            kernel_size=[4, 4], padding="valid",
             activation=tf.nn.relu,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
             use_bias=False,
@@ -31,15 +31,15 @@ class RawDQN:
         )
         self.conv3 = tf.layers.conv2d(
             inputs=self.conv2, filters=64,
-            kernel_size=[3, 3], padding="same",
+            kernel_size=[3, 3], padding="valid",
             activation=tf.nn.relu,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
             use_bias=False,
             data_format='channels_first', strides=1
         )
         self.conv4 = tf.layers.conv2d(
-            inputs=self.conv3, filters=128,
-            kernel_size=[7, 7], padding="same",
+            inputs=self.conv3, filters=1024,
+            kernel_size=[7, 7], padding="valid",
             activation=tf.nn.relu,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
             use_bias=False,
@@ -101,8 +101,8 @@ class DQN_TensorFlow:
 
     def tf_copy_variables(self, from_network):
         update_ops = []
-        for i, var in enumerate(self.trainable_variables):
-            copy_op = from_network.trainable_variables[i].assign(var.value())
+        for var_to, var_from in zip(self.trainable_variables, from_network.trainable_variables):
+            copy_op = var_to.assign(var_from.value())
             update_ops.append(copy_op)
         return update_ops
 

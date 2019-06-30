@@ -33,6 +33,7 @@ class DQN_Agent(AbstractAgent):
 
         # network parameters
         self.learning_rate = 0.00025
+        #self.learning_rate = 10
 
         # initialization
         self.ER = RoundBuffer(ER_SIZE)
@@ -51,6 +52,7 @@ class DQN_Agent(AbstractAgent):
         self.SUM_REWARD = []
         self.UPDATES = []
         self.Q_EP = 0
+        self.Q_arr = []
         self.episode_greedy_actions = 0
         self.REWARD_EP = 0
         self.loss_list = []
@@ -65,9 +67,8 @@ class DQN_Agent(AbstractAgent):
         self.PERFORMANCE_SUMMARIES = tf.summary.merge([self.LOSS_SUMMARY, self.REWARD_SUMMARY, self.Q_SUMMARY])
 
         SUMMARIES = "summaries"
-        RUNID = 'run_1'
+        RUNID = 'run_84x84_2_fixed_preprocessing_fixedwriting'
         self.SUMM_WRITER = tf.summary.FileWriter(os.path.join(SUMMARIES, RUNID))
-
 
     def set_session(self, sess):
         self.target_network.set_session(sess)
@@ -82,7 +83,10 @@ class DQN_Agent(AbstractAgent):
             self.episode_greedy_actions += 1
 
             action_values = self.behavior_network.predict([state])[0]
-            self.Q_EP += action_values.max()
+            q = action_values.max()
+            self.Q_EP += q
+            self.Q_arr.append(q)
+
             return action_values.argmax()
 
     def observe(self, state, action, reward, next_state, done):
@@ -103,6 +107,8 @@ class DQN_Agent(AbstractAgent):
 
         self.cur_episode_num += 1
 
+
+
         # update_stats
         AVG_Q = self.Q_EP / self.episode_greedy_actions if self.episode_greedy_actions > 0 else 0
         self.SUM_Q.append(AVG_Q)
@@ -112,28 +118,29 @@ class DQN_Agent(AbstractAgent):
         self.reset_ep_stats()
 
         if self.cur_episode_num % 5 == 0:
-            df = pd.DataFrame(data={'AVG_Q': self.SUM_Q, 'AVG_REWARD': self.SUM_REWARD, 'N_UPDATED': self.UPDATES})
-            df.to_csv('data/pong/stats_dense.csv', index=False)
+            #df = pd.DataFrame(data={'AVG_Q': self.SUM_Q, 'AVG_REWARD': self.SUM_REWARD, 'N_UPDATED': self.UPDATES})
+            #df.to_csv('data/pong/stats_dense.csv', index=False)
 
             # target_model.save_weights('models/pong_dense')
-            plt.plot(range(5, len(self.SUM_Q)), np.clip(self.SUM_Q[5:], a_min=-50, a_max=50), label='SUM Q')
-            plt.plot(range(5, len(self.SUM_Q)), self.SUM_REWARD[5:], label='SUM Reward')
-            plt.legend()
-            plt.savefig('data/pong/graph.jpg')
-            plt.clf()
+            #plt.plot(range(5, len(self.SUM_Q)), np.clip(self.SUM_Q[5:], a_min=-50, a_max=50), label='SUM Q')
+            #plt.plot(range(5, len(self.SUM_Q)), self.SUM_REWARD[5:], label='SUM Reward')
+            #plt.legend()
+            #plt.savefig('data/pong/graph.jpg')
+            #plt.clf()
 
-            with tf.Session() as sess:
-                loss_stat = np.mean(self.loss_list)
-                loss_stat = 0 if np.isnan(loss_stat) else loss_stat
-                summ = sess.run(self.PERFORMANCE_SUMMARIES,
-                                feed_dict={
-                                    self.LOSS_PH: loss_stat,
-                                    self.Q_PH: np.mean(self.SUM_Q[-10:]),
-                                    self.REWARD_PH: np.mean(self.SUM_REWARD[-10:])
-                                }
-                                )
-                self.SUMM_WRITER.add_summary(summ, self.num_updates)
-                self.loss_list = []
+            if len(self.ER) > self.no_update_moves:
+                with tf.Session() as sess:
+                    loss_stat = np.mean(self.loss_list)
+                    loss_stat = 0 if np.isnan(loss_stat) else loss_stat
+                    summ = sess.run(self.PERFORMANCE_SUMMARIES,
+                                    feed_dict={
+                                        self.LOSS_PH: loss_stat,
+                                        self.Q_PH: np.mean(self.SUM_Q[-10:]),
+                                        self.REWARD_PH: np.mean(self.SUM_REWARD[-10:])
+                                    }
+                                    )
+                    self.SUMM_WRITER.add_summary(summ, self.num_updates)
+                    self.loss_list = []
 
     @property
     def is_diagnostic(self):
