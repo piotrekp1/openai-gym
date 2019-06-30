@@ -14,32 +14,36 @@ class RawDQN:
         self.input_scaled = self.input / 255
 
         self.conv1 = tf.layers.conv2d(
-            inputs=self.input_scaled, filters=16,
-            kernel_size=[5, 5], padding="same",
+            inputs=self.input_scaled, filters=32,
+            kernel_size=[8, 8],padding="same",
+            activation=tf.nn.relu,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
             use_bias=False,
-            data_format='channels_first', strides=2
+            data_format='channels_first', strides=4
         )
         self.conv2 = tf.layers.conv2d(
-            inputs=self.conv1, filters=32,
-            kernel_size=[5, 5], padding="same",
+            inputs=self.conv1, filters=64,
+            kernel_size=[4, 4], padding="same",
+            activation=tf.nn.relu,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
             use_bias=False,
             data_format='channels_first', strides=2
         )
         self.conv3 = tf.layers.conv2d(
             inputs=self.conv2, filters=64,
-            kernel_size=[5, 5], padding="same",
+            kernel_size=[3, 3], padding="same",
+            activation=tf.nn.relu,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
             use_bias=False,
-            data_format='channels_first', strides=2
+            data_format='channels_first', strides=1
         )
         self.conv4 = tf.layers.conv2d(
-            inputs=self.conv3, filters=64,
-            kernel_size=[5, 5], padding="same",
+            inputs=self.conv3, filters=128,
+            kernel_size=[7, 7], padding="same",
+            activation=tf.nn.relu,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
             use_bias=False,
-            data_format='channels_first', strides=2
+            data_format='channels_first', strides=1
         )
 
         self.conv4_flat = tf.layers.flatten(self.conv4)
