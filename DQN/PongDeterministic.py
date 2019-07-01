@@ -18,6 +18,8 @@ state_processor = DQN_StateProcessor()
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
 
+saver = tf.train.Saver()
+
 with tf.Session(config=config) as sess:
     sess.run(tf.global_variables_initializer())
     agent.set_session(sess)
@@ -49,3 +51,6 @@ with tf.Session(config=config) as sess:
 
             if i_frame % ACTIONS_REPEATED == 0:
                 agent.step_train()
+
+            if i_episode % 25 == 0:
+                save_path = saver.save(sess, "models/pongDDQN.ckpt")

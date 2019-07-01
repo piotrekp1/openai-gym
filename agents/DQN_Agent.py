@@ -67,8 +67,9 @@ class DQN_Agent(AbstractAgent):
         self.PERFORMANCE_SUMMARIES = tf.summary.merge([self.LOSS_SUMMARY, self.REWARD_SUMMARY, self.Q_SUMMARY])
 
         SUMMARIES = "summaries"
-        RUNID = 'run_84x84_2_fixed_preprocessing_fixedwriting'
+        RUNID = 'DDQN'
         self.SUMM_WRITER = tf.summary.FileWriter(os.path.join(SUMMARIES, RUNID))
+
 
     def set_session(self, sess):
         self.target_network.set_session(sess)

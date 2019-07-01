@@ -15,7 +15,7 @@ class RawDQN:
 
         self.conv1 = tf.layers.conv2d(
             inputs=self.input_scaled, filters=32,
-            kernel_size=[8, 8],padding="valid",
+            kernel_size=[8, 8], padding="valid",
             activation=tf.nn.relu,
             kernel_initializer=tf.variance_scaling_initializer(scale=2),
             use_bias=False,
@@ -68,13 +68,14 @@ class RawDQN:
 
 
 class DQN_TensorFlow:
-    def __init__(self, learninig_rate=0.00025, DISCOUNT=0.99, scope_name='global'):
+    def __init__(self, learninig_rate=0.00025, DISCOUNT=0.99, scope_name='global', DoubleDQN=True):
         self.scope_name = scope_name
         with tf.variable_scope(scope_name):
             self.dqn = RawDQN(learninig_rate)
         self.trainable_variables = tf.trainable_variables(scope=scope_name)
         self.DISCOUNT = DISCOUNT
         self.sess = None
+        self.DoubleDQN = DoubleDQN
 
     def predict(self, x):
         return self.sess.run(self.dqn.outputs,
@@ -86,7 +87,14 @@ class DQN_TensorFlow:
         states, actions, rewards, next_states, dones = zip(*minibatch)
         not_dones = np.array(dones) * -1 + 1
 
-        next_state_preds = target_network.predict(next_states).max(axis=1)
+        next_state_target_preds = target_network.predict(next_states)
+
+        # IF DOUBLE DQN USE BEHAVIOUR NETWORK, OTHERWISE TARGET NETWORK FOR ARGMAX
+        network_to_argmax_from = self if self.DoubleDQN else target_network
+        next_state_inds = np.argmax(network_to_argmax_from.predict(next_states), axis=1)
+
+        next_state_preds = next_state_target_preds[range(minibatch.shape[0]), next_state_inds]
+
         expected_state_action_values = (next_state_preds * self.DISCOUNT * not_dones) + np.array(rewards)
 
         _, loss = self.sess.run([self.dqn.update, self.dqn.loss], feed_dict={
