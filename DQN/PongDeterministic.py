@@ -4,7 +4,6 @@ import tensorflow as tf
 from agents.DQN_Agent import DQN_Agent
 from utils.StateProcessors import DQN_StateProcessor
 
-
 NUM_EPISODES = 100000
 EP_LENGTH = 100000
 
@@ -52,5 +51,5 @@ with tf.Session(config=config) as sess:
             if i_frame % ACTIONS_REPEATED == 0:
                 agent.step_train()
 
-            if i_episode % 25 == 0:
-                save_path = saver.save(sess, "models/pongDDQN.ckpt")
+        if i_episode % 25 == 0:
+            save_path = saver.save(sess, "models/pongDDQN.ckpt")
