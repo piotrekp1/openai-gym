@@ -5,7 +5,7 @@ import numpy as np
 class RawDQN:
     def __init__(self, learning_rate):
         h, w = 84, 84
-        num_moves = 6
+        num_moves = 4
 
         self.input = tf.placeholder(shape=[None, 4, h, w], dtype=tf.float32)
         self.target_q = tf.placeholder(shape=[None], dtype=tf.float32)
@@ -93,7 +93,7 @@ class DQN_TensorFlow:
         network_to_argmax_from = self if self.DoubleDQN else target_network
         next_state_inds = np.argmax(network_to_argmax_from.predict(next_states), axis=1)
 
-        next_state_preds = next_state_target_preds[range(minibatch.shape[0]), next_state_inds]
+        next_state_preds = next_state_target_preds[range(len(minibatch)), next_state_inds]
 
         expected_state_action_values = (next_state_preds * self.DISCOUNT * not_dones) + np.array(rewards)
 

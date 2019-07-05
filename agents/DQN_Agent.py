@@ -32,8 +32,8 @@ class DQN_Agent(AbstractAgent):
         self.no_update_moves = 50000
 
         # network parameters
-        self.learning_rate = 0.00025
-        #self.learning_rate = 10
+        self.learning_rate = 0.00001
+        # self.learning_rate = 10
 
         # initialization
         self.ER = RoundBuffer(ER_SIZE)
@@ -67,9 +67,8 @@ class DQN_Agent(AbstractAgent):
         self.PERFORMANCE_SUMMARIES = tf.summary.merge([self.LOSS_SUMMARY, self.REWARD_SUMMARY, self.Q_SUMMARY])
 
         SUMMARIES = "summaries"
-        RUNID = 'DDQN'
+        RUNID = 'DDQN_Breakout3'
         self.SUMM_WRITER = tf.summary.FileWriter(os.path.join(SUMMARIES, RUNID))
-
 
     def set_session(self, sess):
         self.target_network.set_session(sess)
@@ -108,8 +107,6 @@ class DQN_Agent(AbstractAgent):
 
         self.cur_episode_num += 1
 
-
-
         # update_stats
         AVG_Q = self.Q_EP / self.episode_greedy_actions if self.episode_greedy_actions > 0 else 0
         self.SUM_Q.append(AVG_Q)
@@ -119,15 +116,15 @@ class DQN_Agent(AbstractAgent):
         self.reset_ep_stats()
 
         if self.cur_episode_num % 5 == 0:
-            #df = pd.DataFrame(data={'AVG_Q': self.SUM_Q, 'AVG_REWARD': self.SUM_REWARD, 'N_UPDATED': self.UPDATES})
-            #df.to_csv('data/pong/stats_dense.csv', index=False)
+            # df = pd.DataFrame(data={'AVG_Q': self.SUM_Q, 'AVG_REWARD': self.SUM_REWARD, 'N_UPDATED': self.UPDATES})
+            # df.to_csv('data/pong/stats_dense.csv', index=False)
 
             # target_model.save_weights('models/pong_dense')
-            #plt.plot(range(5, len(self.SUM_Q)), np.clip(self.SUM_Q[5:], a_min=-50, a_max=50), label='SUM Q')
-            #plt.plot(range(5, len(self.SUM_Q)), self.SUM_REWARD[5:], label='SUM Reward')
-            #plt.legend()
-            #plt.savefig('data/pong/graph.jpg')
-            #plt.clf()
+            # plt.plot(range(5, len(self.SUM_Q)), np.clip(self.SUM_Q[5:], a_min=-50, a_max=50), label='SUM Q')
+            # plt.plot(range(5, len(self.SUM_Q)), self.SUM_REWARD[5:], label='SUM Reward')
+            # plt.legend()
+            # plt.savefig('data/pong/graph.jpg')
+            # plt.clf()
 
             if len(self.ER) > self.no_update_moves:
                 with tf.Session() as sess:
