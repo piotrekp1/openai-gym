@@ -19,8 +19,13 @@ config.gpu_options.allow_growth = True
 
 saver = tf.train.Saver()
 
+LOAD = True
+
 with tf.Session(config=config) as sess:
-    sess.run(tf.global_variables_initializer())
+    if LOAD:
+        saver.restore(sess, "models/BreakoutDDQN.ckpt")
+    else:
+        sess.run(tf.global_variables_initializer())
     agent.set_session(sess)
 
     for i_episode in range(NUM_EPISODES):
@@ -52,4 +57,4 @@ with tf.Session(config=config) as sess:
                 agent.step_train()
 
         if i_episode % 25 == 0:
-            save_path = saver.save(sess, "models/BreakoutDDQN.ckpt")
+            save_path = saver.save(sess, "models/BreakoutDDQN2.ckpt")

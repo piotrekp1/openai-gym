@@ -29,7 +29,9 @@ class DQN_Agent(AbstractAgent):
 
         self.UPDATES_PER_EPOCH = 10000
 
+        # self.no_update_moves = 50000
         self.no_update_moves = 50000
+        # self.random_action_moves = 0
 
         # network parameters
         self.learning_rate = 0.00001
@@ -38,9 +40,9 @@ class DQN_Agent(AbstractAgent):
         # initialization
         self.ER = RoundBuffer(ER_SIZE)
 
-        self.num_updates = 0
-        self.cur_episode_num = 0
-        self.cur_eps = 1
+        self.num_updates = 2068000
+        self.cur_episode_num = 600
+        self.cur_eps = 0.05
 
         # networks
         self.target_network = DQN_TensorFlow(self.learning_rate, self.DISCOUNT, 'target')
